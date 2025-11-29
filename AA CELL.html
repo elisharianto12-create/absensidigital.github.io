@@ -1,0 +1,1319 @@
+<!doctype html>
+<html lang="id">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Catatan Penjualan Pulsa</title>
+   <!-- MODIFIKASI: Menambahkan Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+  
+  <script src="/_sdk/element_sdk.js"></script>
+  <script src="/_sdk/data_sdk.js"></script>
+  <style>
+    body {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100%;
+      height: 100%;
+    }
+    
+    html {
+      height: 100%;
+    }
+    
+    * {
+      box-sizing: border-box;
+    }
+    
+    .container {
+      padding: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .header {
+      text-align: center;
+      color: white;
+      margin-bottom: 30px;
+    }
+    
+    .header h1 {
+      margin: 0;
+      font-size: 32px;
+      font-weight: 700;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+    }
+    
+    .balance-display {
+      background: rgba(255,255,255,0.2);
+      backdrop-filter: blur(10px);
+      border-radius: 15px;
+      padding: 15px 20px;
+      margin-top: 15px;
+      display: inline-block;
+      color: white;
+      font-size: 18px;
+      font-weight: 600;
+    }
+    
+    .data-status {
+      background: rgba(255,255,255,0.1);
+      border-radius: 10px;
+      padding: 10px 15px;
+      margin-top: 10px;
+      color: white;
+      font-size: 12px;
+      text-align: center;
+    }
+    
+    .menu-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 90px);
+      gap: 8px;
+      margin-bottom: 30px;
+      justify-content: center;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    
+    .menu-card {
+      background: white;
+      border-radius: 16px;
+      padding: 15px 10px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+      aspect-ratio: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 90px;
+      height: 90px;
+    }
+    
+    .menu-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+    }
+    
+    .menu-card.active {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+    }
+    
+    .menu-icon {
+      font-size: 32px;
+      margin-bottom: 6px;
+    }
+    
+    .menu-title {
+      font-size: 11px;
+      font-weight: 600;
+      margin: 0;
+      line-height: 1.2;
+    }
+    
+    .content-area {
+      background: white;
+      border-radius: 20px;
+      padding: 25px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      display: none;
+    }
+    
+    .content-area.active {
+      display: block;
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #333;
+    }
+    
+    .form-group input {
+      width: 100%;
+      padding: 12px 15px;
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      font-size: 16px;
+      transition: border-color 0.3s;
+    }
+    
+    .form-group input:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    
+    .btn {
+      padding: 12px 30px;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+    
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .btn-success {
+      background: #10b981;
+      color: white;
+      padding: 8px 16px;
+      font-size: 14px;
+    }
+    
+    .btn-warning {
+      background: #f59e0b;
+      color: white;
+      padding: 8px 16px;
+      font-size: 14px;
+    }
+    
+    .btn-danger {
+      background: #ef4444;
+      color: white;
+      padding: 8px 16px;
+      font-size: 14px;
+    }
+    
+    .transaction-list {
+      margin-top: 20px;
+    }
+    
+    .transaction-item {
+      background: #f9fafb;
+      border-radius: 12px;
+      padding: 15px;
+      margin-bottom: 12px;
+      border-left: 4px solid #667eea;
+    }
+    
+    .transaction-item.balance {
+      border-left-color: #10b981;
+    }
+    
+    .transaction-item.sale {
+      border-left-color: #f59e0b;
+    }
+    
+    .transaction-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    
+    .transaction-type {
+      font-weight: 600;
+      color: #667eea;
+    }
+    
+    .transaction-amount {
+      font-weight: 700;
+      font-size: 18px;
+      color: #10b981;
+    }
+    
+    .transaction-amount.expense {
+      color: #ef4444;
+    }
+    
+    .transaction-details {
+      font-size: 14px;
+      color: #6b7280;
+      margin-top: 5px;
+    }
+    
+    .transaction-actions {
+      margin-top: 10px;
+      display: flex;
+      gap: 8px;
+    }
+    
+    .status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-top: 5px;
+    }
+    
+    .status-badge.paid {
+      background: #d1fae5;
+      color: #065f46;
+    }
+    
+    .status-badge.unpaid {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+    
+    .recap-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 12px;
+      padding: 15px;
+      margin-bottom: 10px;
+    }
+    
+    .recap-label {
+      font-size: 12px;
+      opacity: 0.9;
+      margin-bottom: 4px;
+    }
+    
+    .recap-value {
+      font-size: 20px;
+      font-weight: 700;
+    }
+    
+    .recap-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 10px;
+    }
+    
+    .customer-recap-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 15px;
+    }
+    
+    .customer-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+      border-left: 4px solid #667eea;
+    }
+    
+    .customer-name {
+      font-size: 18px;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 15px;
+    }
+    
+    .customer-stats {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .customer-stat {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+    }
+    
+    .customer-stat-label {
+      color: #6b7280;
+    }
+    
+    .customer-stat-value {
+      font-weight: 600;
+      color: #333;
+    }
+    
+    .customer-status {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-top: 10px;
+    }
+    
+    .customer-status.paid {
+      background: #d1fae5;
+      color: #065f46;
+    }
+    
+    .customer-status.unpaid {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+    
+    .customer-status.mixed {
+      background: #fef3c7;
+      color: #92400e;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 20px;
+      color: #6b7280;
+    }
+    
+    .loading-spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #667eea;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 10px;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: #9ca3af;
+    }
+    
+    .empty-state-icon {
+      font-size: 64px;
+      margin-bottom: 15px;
+    }
+    
+    .toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: white;
+      padding: 15px 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      display: none;
+      z-index: 1000;
+      animation: slideIn 0.3s ease;
+    }
+    
+    .toast.show {
+      display: block;
+    }
+    
+    .toast.error {
+      border-left: 4px solid #ef4444;
+    }
+    
+    .toast.success {
+      border-left: 4px solid #10b981;
+    }
+    
+    @keyframes slideIn {
+      from {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="https://cdn.tailwindcss.com" type="text/javascript"></script>
+ </head>
+ <body>
+  <div class="container">
+   <div class="header">
+    <h1 id="app-title">Catatan Penjualan Pulsa 
+    <p style="color:rgb(111, 187, 111);">AA CELL</h1>
+    <div class="balance-display">
+     💰 Saldo Saat Ini: Rp <span id="current-balance">0</span>
+    </div>
+    <div class="data-status" id="data-status">
+     🔄 Menghubungkan ke Canva Sheet...
+    </div>
+   </div>
+   <div class="menu-grid">
+    <div class="menu-card" data-menu="balance">
+     <div class="menu-icon">
+      💵
+     </div>
+     <p class="menu-title" id="balance-menu-title">Saldo Awal</p>
+    </div>
+    <div class="menu-card" data-menu="transaction">
+     <div class="menu-icon">
+      📱
+     </div>
+     <p class="menu-title" id="transaction-menu-title">Transaksi</p>
+    </div>
+    <div class="menu-card" data-menu="list">
+     <div class="menu-icon">
+      📋
+     </div>
+     <p class="menu-title" id="list-menu-title">Daftar Transaksi</p>
+    </div>
+    <div class="menu-card" data-menu="recap">
+     <div class="menu-icon">
+      📊
+     </div>
+     <p class="menu-title" id="recap-menu-title">Rekap</p>
+    </div>
+   </div>
+   <div id="balance-content" class="content-area">
+    <h2>Tambah Saldo</h2>
+    <form id="balance-form">
+     <div class="form-group"><label for="balance-amount">Jumlah Saldo (Rp)</label> <input type="number" id="balance-amount" required min="0" placeholder="Masukkan jumlah saldo">
+     </div><button type="submit" class="btn btn-primary" id="balance-submit">Tambah Saldo</button>
+    </form>
+   </div>
+   <div id="transaction-content" class="content-area">
+    <h2>Transaksi Penjualan</h2>
+    <form id="transaction-form">
+     <div class="form-group"><label for="customer-name">Nama Pelanggan</label> <input type="text" id="customer-name" required placeholder="Masukkan nama pelanggan">
+     </div>
+     <div class="form-group"><label for="pulsa-amount">Jumlah Pulsa (Rp)</label> <input type="number" id="pulsa-amount" required min="0" placeholder="Contoh: 10000">
+     </div>
+     <div class="form-group"><label for="selling-price">Harga Jual (Rp)</label> <input type="number" id="selling-price" required min="0" placeholder="Contoh: 12000">
+     </div><button type="submit" class="btn btn-primary" id="transaction-submit">Simpan Transaksi</button>
+    </form>
+   </div>
+   <div id="list-content" class="content-area">
+    <h2>Daftar Transaksi</h2>
+    <div id="transaction-list" class="transaction-list"></div>
+   </div>
+   <div id="recap-content" class="content-area">
+    <h2>Rekap Keuangan</h2>
+    <div id="recap-container" class="recap-grid">
+     <div class="recap-card">
+      <div class="recap-label">
+       Total Saldo Keluar
+      </div>
+      <div class="recap-value">
+       Rp <span id="total-expense">0</span>
+      </div>
+     </div>
+     <div class="recap-card">
+      <div class="recap-label">
+       Total Harga Jual
+      </div>
+      <div class="recap-value">
+       Rp <span id="total-income">0</span>
+      </div>
+     </div>
+     <div class="recap-card">
+      <div class="recap-label">
+       Laba Bersih
+      </div>
+      <div class="recap-value">
+       Rp <span id="total-profit">0</span>
+      </div>
+     </div>
+    </div>
+    <h3 style="margin-top: 30px; margin-bottom: 20px; color: #333;">Rekap Per Pelanggan</h3>
+    <div id="customer-recap" class="customer-recap-container"></div>
+   </div>
+  </div>
+  <div id="toast" class="toast"></div>
+  <script>
+    // MODIFIKASI: Menambahkan konfigurasi Firebase dan inisialisasi
+      // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyDk5PTdaPv686WE_VYc0Q4Ejx_OOPEUGb0",
+  authDomain: "aa-cell-5c456.firebaseapp.com",
+  databaseUrl: "https://aa-cell-5c456-default-rtdb.asia-southeast1.firebasedatabase.app"
+  projectId: "aa-cell-5c456",
+  storageBucket: "aa-cell-5c456.firebasestorage.app",
+  messagingSenderId: "86043084384",
+  appId: "1:86043084384:web:68d7f25ad0578049de6505",
+  measurementId: "G-2T51LQ9MRM"
+};
+    const defaultConfig = {
+      app_title: "Catatan Penjualan Pulsa AA CELL",
+      balance_label: "Saldo Awal",
+      transaction_label: "Transaksi",
+      list_label: "Daftar Transaksi",
+      recap_label: "Rekap",
+      primary_color: "#667eea",
+      secondary_color: "#764ba2",
+      success_color: "#10b981",
+      warning_color: "#f59e0b",
+      danger_color: "#ef4444"
+    };
+    
+    let allTransactions = [];
+    let currentBalance = 0;
+    let currentRecordCount = 0;
+    let isDataLoaded = false;
+    let dataLoadAttempts = 0;
+    const maxDataLoadAttempts = 5;
+    
+    // Show UI immediately with default state
+    function showInitialUI() {
+      document.getElementById('current-balance').textContent = '0';
+      showMenu('balance');
+      setupEventListeners();
+      
+      // Show initial empty states
+      updateInitialRecap();
+      showInitialTransactionList();
+      showInitialCustomerRecap();
+    }
+    
+    function updateDataStatus(message, isError = false) {
+      const statusElement = document.getElementById('data-status');
+      if (statusElement) {
+        statusElement.textContent = message;
+        statusElement.style.background = isError ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255,255,255,0.1)';
+      }
+    }
+    
+    function showInitialTransactionList() {
+      const listContainer = document.getElementById('transaction-list');
+      listContainer.innerHTML = `
+        <div class="loading">
+          <div class="loading-spinner"></div>
+          <span>Memuat data transaksi...</span>
+        </div>
+      `;
+      
+      // Force update after 3 seconds if still loading
+      setTimeout(() => {
+        if (!isDataLoaded) {
+          renderTransactionList();
+        }
+      }, 3000);
+    }
+    
+    function showInitialCustomerRecap() {
+      const customerRecapContainer = document.getElementById('customer-recap');
+      customerRecapContainer.innerHTML = `
+        <div class="loading">
+          <div class="loading-spinner"></div>
+          <span>Memuat data pelanggan...</span>
+        </div>
+      `;
+      
+      // Force update after 3 seconds if still loading
+      setTimeout(() => {
+        if (!isDataLoaded) {
+          updateCustomerRecap();
+        }
+      }, 3000);
+    }
+    
+    function updateInitialRecap() {
+      document.getElementById('total-expense').textContent = '0';
+      document.getElementById('total-income').textContent = '0';
+      document.getElementById('total-profit').textContent = '0';
+    }
+    
+    // Data handler SUPER KUAT untuk memulihkan data dari Canva Sheet
+    const dataHandler = {
+      onDataChanged(data) {
+        console.log("🔥 SUPER RECOVERY: Data received from Canva Sheet:", data);
+        console.log("🔥 Data type:", typeof data);
+        console.log("🔥 Data length:", data ? data.length : 'null/undefined');
+        console.log("🔥 Raw data structure:", JSON.stringify(data, null, 2));
+        
+        // AGGRESSIVE data processing - accept ANY valid-looking data
+        let recoveredTransactions = [];
+        
+        if (data && Array.isArray(data) && data.length > 0) {
+          console.log("🔥 Processing array data...");
+          
+          recoveredTransactions = data.filter(item => {
+            if (!item || typeof item !== 'object') return false;
+            
+            // More flexible validation - accept any item with basic structure
+            const hasType = item.type === 'balance' || item.type === 'sale';
+            const hasBackendId = item.__backendId;
+            const hasCreatedAt = item.createdAt;
+            
+            console.log(`🔍 Item validation: type=${item.type}, hasBackendId=${!!hasBackendId}, hasCreatedAt=${!!hasCreatedAt}`);
+            
+            // Accept item if it has type and either backendId or createdAt
+            return hasType && (hasBackendId || hasCreatedAt);
+          });
+          
+          console.log(`🔥 Filtered ${recoveredTransactions.length} valid transactions from ${data.length} items`);
+        } else if (data && typeof data === 'object' && !Array.isArray(data)) {
+          console.log("🔥 Processing single object data...");
+          // Handle case where single object is returned instead of array
+          if (data.type && (data.type === 'balance' || data.type === 'sale')) {
+            recoveredTransactions = [data];
+            console.log("🔥 Converted single object to array");
+          }
+        }
+        
+        // Update global state
+        allTransactions = recoveredTransactions;
+        currentRecordCount = allTransactions.length;
+        isDataLoaded = true;
+        
+        console.log(`🔥 FINAL RESULT: ${currentRecordCount} transactions recovered`);
+        
+        if (currentRecordCount > 0) {
+          // SUCCESS! Data found and recovered
+          const balanceCount = allTransactions.filter(t => t.type === 'balance').length;
+          const saleCount = allTransactions.filter(t => t.type === 'sale').length;
+          
+          console.log(`🎉 SUCCESS! Breakdown: ${balanceCount} saldo, ${saleCount} penjualan`);
+          
+          updateDataStatus(`🎉 SUKSES! Data lama Anda berhasil dipulihkan! ${currentRecordCount} transaksi ditemukan`);
+          showToast(`🎉 BERHASIL! Data lama Anda sudah kembali! ${currentRecordCount} transaksi (${balanceCount} saldo, ${saleCount} penjualan)`, "success");
+          
+          // Show success status longer
+          setTimeout(() => {
+            const statusElement = document.getElementById('data-status');
+            if (statusElement) {
+              statusElement.textContent = `✅ Data terhubung: ${currentRecordCount} transaksi aktif`;
+              statusElement.style.background = 'rgba(16, 185, 129, 0.2)';
+            }
+          }, 5000);
+          
+          // Hide status completely after longer time
+          setTimeout(() => {
+            const statusElement = document.getElementById('data-status');
+            if (statusElement) {
+              statusElement.style.display = 'none';
+            }
+          }, 12000);
+          
+        } else {
+          console.log("❌ No data recovered - truly empty or connection issue");
+          updateDataStatus("❌ Tidak menemukan data lama - Canva Sheet mungkin kosong");
+          
+          setTimeout(() => {
+            if (currentRecordCount === 0) {
+              updateDataStatus("📝 Siap untuk data baru - Mulai dengan menambah saldo");
+            }
+          }, 3000);
+        }
+        
+        // Always update UI regardless
+        calculateBalance();
+        updateUI();
+        
+        // Force multiple UI refreshes to ensure everything updates
+        setTimeout(() => {
+          calculateBalance();
+          updateUI();
+        }, 200);
+        
+        setTimeout(() => {
+          updateUI();
+        }, 500);
+      }
+    };
+    
+    async function initializeApp() {
+      console.log("🚀 Initializing app...");
+      console.log("🔍 Checking for existing data in Canva Sheet...");
+      
+      // Show UI immediately
+      showInitialUI();
+      updateDataStatus("🔄 Menghubungkan ke Canva Sheet dan mencari data Anda...");
+      
+      // Initialize SDK in background with enhanced retry logic
+      if (window.dataSdk) {
+        try {
+          console.log("📡 Initializing Data SDK...");
+          const initResult = await window.dataSdk.init(dataHandler);
+          
+          if (initResult.isOk) {
+            console.log("✅ Data SDK initialized successfully");
+            updateDataStatus("🔄 Terhubung! Sedang mencari dan memuat data dari Canva Sheet...");
+            
+            // SISTEM PENCARIAN DATA MAKSIMAL - TIDAK AKAN MENYERAH!
+            let dataCheckAttempts = 0;
+            const maxDataCheckAttempts = 25; // Maksimal attempts!
+            let hasShownWarning = false;
+            let hasShownPersistence = false;
+            
+            console.log("🔥 Starting MAXIMUM data recovery system...");
+            
+            const checkDataInterval = setInterval(() => {
+              dataCheckAttempts++;
+              
+              if (isDataLoaded && currentRecordCount > 0) {
+                clearInterval(checkDataInterval);
+                console.log("🎉 SUKSES! Data recovery completed successfully");
+                return;
+              }
+              
+              // Progressive status updates
+              if (dataCheckAttempts === 3) {
+                updateDataStatus("🔍 Mencari data lama Anda di Canva Sheet...");
+              }
+              
+              if (dataCheckAttempts === 7 && !hasShownWarning) {
+                hasShownWarning = true;
+                updateDataStatus("🔍 Masih mencari... Data Anda pasti ada, sabar sebentar");
+              }
+              
+              if (dataCheckAttempts === 12) {
+                updateDataStatus("🔄 Pencarian mendalam... Sistem tidak akan menyerah!");
+              }
+              
+              if (dataCheckAttempts === 18 && !hasShownPersistence) {
+                hasShownPersistence = true;
+                updateDataStatus("💪 Terus mencari data Anda... Hampir selesai!");
+                showToast("Sistem sedang bekerja keras mencari data lama Anda...", "success");
+              }
+              
+              if (dataCheckAttempts === 22) {
+                updateDataStatus("🔍 Pencarian final... Mengecek semua kemungkinan");
+              }
+              
+              if (dataCheckAttempts >= maxDataCheckAttempts) {
+                clearInterval(checkDataInterval);
+                console.log("⏰ Maximum search attempts reached - final check");
+                
+                if (currentRecordCount === 0) {
+                  updateDataStatus("❌ Pencarian selesai - Tidak menemukan data lama");
+                  showToast("Data lama tidak ditemukan. Mungkin Canva Sheet kosong atau ini aplikasi baru.", "error");
+                  
+                  // Suggest starting fresh
+                  setTimeout(() => {
+                    updateDataStatus("📝 Siap memulai fresh! Tambahkan saldo pertama Anda");
+                  }, 3000);
+                } else {
+                  updateDataStatus(`✅ Ditemukan ${currentRecordCount} transaksi`);
+                }
+                
+                // Force final UI update
+                calculateBalance();
+                updateUI();
+              } else {
+                console.log(`🔥 SUPER SEARCH attempt ${dataCheckAttempts}/${maxDataCheckAttempts}`);
+                updateDataStatus(`🔥 Pencarian SUPER aktif... (${dataCheckAttempts}/${maxDataCheckAttempts})`);
+              }
+            }, 1200); // Slightly faster for more responsive feel
+            
+          } else {
+            console.error("❌ Failed to initialize data SDK:", initResult.error);
+            updateDataStatus("❌ Gagal terhubung ke Canva Sheet", true);
+            showToast("Gagal menginisialisasi penyimpanan data", "error");
+          }
+        } catch (error) {
+          console.error("💥 Error initializing SDK:", error);
+          updateDataStatus("💥 Error koneksi", true);
+          showToast("Gagal menginisialisasi penyimpanan data", "error");
+        }
+      } else {
+        console.error("❌ Data SDK not available");
+        updateDataStatus("❌ SDK tidak tersedia", true);
+        showToast("Data SDK tidak tersedia", "error");
+        
+        // Wait a bit and try again
+        setTimeout(() => {
+          if (window.dataSdk) {
+            console.log("🔄 Data SDK now available, retrying...");
+            initializeApp();
+          }
+        }, 2000);
+      }
+    }
+    
+    function calculateBalance() {
+      let balance = 0;
+      allTransactions.forEach(transaction => {
+        if (transaction.type === 'balance') {
+          balance += transaction.amount;
+        } else if (transaction.type === 'sale') {
+          balance -= transaction.pulsaAmount;
+        }
+      });
+      currentBalance = balance;
+      console.log(`💰 Calculated balance: Rp ${formatNumber(currentBalance)}`);
+    }
+    
+    function updateUI() {
+      document.getElementById('current-balance').textContent = formatNumber(currentBalance);
+      renderTransactionList();
+      updateRecap();
+    }
+    
+    function setupEventListeners() {
+      document.querySelectorAll('.menu-card').forEach(card => {
+        card.addEventListener('click', () => {
+          const menu = card.dataset.menu;
+          showMenu(menu);
+        });
+      });
+      
+      document.getElementById('balance-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await handleBalanceSubmit();
+      });
+      
+      document.getElementById('transaction-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await handleTransactionSubmit();
+      });
+    }
+    
+    function showMenu(menuName) {
+      document.querySelectorAll('.menu-card').forEach(card => {
+        card.classList.remove('active');
+      });
+      document.querySelectorAll('.content-area').forEach(area => {
+        area.classList.remove('active');
+      });
+      
+      document.querySelector(`[data-menu="${menuName}"]`).classList.add('active');
+      document.getElementById(`${menuName}-content`).classList.add('active');
+    }
+    
+    async function handleBalanceSubmit() {
+      const submitBtn = document.getElementById('balance-submit');
+      
+      if (!window.dataSdk) {
+        showToast("Data SDK belum tersedia", "error");
+        return;
+      }
+      
+      const amount = parseFloat(document.getElementById('balance-amount').value);
+      
+      if (!amount || amount <= 0) {
+        showToast("Masukkan jumlah saldo yang valid", "error");
+        return;
+      }
+      
+      if (currentRecordCount >= 999) {
+        showToast("Maksimum 999 transaksi telah tercapai. Hapus beberapa transaksi terlebih dahulu.", "error");
+        return;
+      }
+      
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Menyimpan...';
+      
+      try {
+        const result = await window.dataSdk.create({
+          type: 'balance',
+          amount: amount,
+          customerName: '',
+          pulsaAmount: 0,
+          sellingPrice: 0,
+          isPaid: true,
+          createdAt: new Date().toISOString()
+        });
+        
+        if (result.isOk) {
+          document.getElementById('balance-form').reset();
+          showToast("Saldo berhasil ditambahkan!", "success");
+        } else {
+          showToast("Gagal menambahkan saldo. Silakan coba lagi.", "error");
+        }
+      } catch (error) {
+        console.error("Error adding balance:", error);
+        showToast("Gagal menambahkan saldo. Silakan coba lagi.", "error");
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Tambah Saldo';
+      }
+    }
+    
+    async function handleTransactionSubmit() {
+      const submitBtn = document.getElementById('transaction-submit');
+      
+      if (!window.dataSdk) {
+        showToast("Data SDK belum tersedia", "error");
+        return;
+      }
+      
+      const customerName = document.getElementById('customer-name').value.trim();
+      const pulsaAmount = parseFloat(document.getElementById('pulsa-amount').value);
+      const sellingPrice = parseFloat(document.getElementById('selling-price').value);
+      
+      if (!customerName) {
+        showToast("Masukkan nama pelanggan", "error");
+        return;
+      }
+      
+      if (!pulsaAmount || pulsaAmount <= 0) {
+        showToast("Masukkan jumlah pulsa yang valid", "error");
+        return;
+      }
+      
+      if (!sellingPrice || sellingPrice <= 0) {
+        showToast("Masukkan harga jual yang valid", "error");
+        return;
+      }
+      
+      if (pulsaAmount > currentBalance) {
+        showToast("Saldo tidak mencukupi untuk transaksi ini!", "error");
+        return;
+      }
+      
+      if (currentRecordCount >= 999) {
+        showToast("Maksimum 999 transaksi telah tercapai. Hapus beberapa transaksi terlebih dahulu.", "error");
+        return;
+      }
+      
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Menyimpan...';
+      
+      try {
+        const result = await window.dataSdk.create({
+          type: 'sale',
+          amount: 0,
+          customerName: customerName,
+          pulsaAmount: pulsaAmount,
+          sellingPrice: sellingPrice,
+          isPaid: false,
+          createdAt: new Date().toISOString()
+        });
+        
+        if (result.isOk) {
+          document.getElementById('transaction-form').reset();
+          showToast("Transaksi berhasil disimpan!", "success");
+        } else {
+          showToast("Gagal menyimpan transaksi. Silakan coba lagi.", "error");
+        }
+      } catch (error) {
+        console.error("Error adding transaction:", error);
+        showToast("Gagal menyimpan transaksi. Silakan coba lagi.", "error");
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Simpan Transaksi';
+      }
+    }
+    
+    function renderTransactionList() {
+      const listContainer = document.getElementById('transaction-list');
+      
+      if (allTransactions.length === 0) {
+        listContainer.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">📭</div>
+            <p>Belum ada transaksi</p>
+          </div>
+        `;
+        return;
+      }
+      
+      // Sort by date (newest first)
+      const sortedTransactions = [...allTransactions].sort((a, b) => {
+        const dateA = new Date(a.createdAt);
+        const dateB = new Date(b.createdAt);
+        return dateB - dateA;
+      });
+      
+      listContainer.innerHTML = sortedTransactions.map(transaction => {
+        if (transaction.type === 'balance') {
+          return `
+            <div class="transaction-item balance">
+              <div class="transaction-header">
+                <span class="transaction-type">💵 Tambah Saldo</span>
+                <span class="transaction-amount">+Rp ${formatNumber(transaction.amount)}</span>
+              </div>
+              <div class="transaction-details">
+                ${formatDate(transaction.createdAt)}
+              </div>
+              <div class="transaction-actions">
+                <button class="btn btn-danger" onclick="deleteTransaction('${transaction.__backendId}')">Hapus</button>
+              </div>
+            </div>
+          `;
+        } else {
+          return `
+            <div class="transaction-item sale">
+              <div class="transaction-header">
+                <span class="transaction-type">📱 Penjualan Pulsa</span>
+                <span class="transaction-amount expense">-Rp ${formatNumber(transaction.pulsaAmount)}</span>
+              </div>
+              <div class="transaction-details">
+                <strong>${transaction.customerName}</strong><br>
+                Pulsa: Rp ${formatNumber(transaction.pulsaAmount)} | Jual: Rp ${formatNumber(transaction.sellingPrice)}<br>
+                Laba: Rp ${formatNumber(transaction.sellingPrice - transaction.pulsaAmount)}<br>
+                ${formatDate(transaction.createdAt)}
+              </div>
+              <span class="status-badge ${transaction.isPaid ? 'paid' : 'unpaid'}">
+                ${transaction.isPaid ? '✓ Lunas' : '⏳ Belum Lunas'}
+              </span>
+              <div class="transaction-actions">
+                ${!transaction.isPaid ? `<button class="btn btn-success" onclick="markAsPaid('${transaction.__backendId}')">Tandai Lunas</button>` : ''}
+                ${transaction.isPaid ? `<button class="btn btn-warning" onclick="markAsUnpaid('${transaction.__backendId}')">Tandai Belum Lunas</button>` : ''}
+                <button class="btn btn-danger" onclick="deleteTransaction('${transaction.__backendId}')">Hapus</button>
+              </div>
+            </div>
+          `;
+        }
+      }).join('');
+    }
+    
+    async function markAsPaid(transactionId) {
+      if (!window.dataSdk) return;
+      
+      const transaction = allTransactions.find(t => t.__backendId === transactionId);
+      if (!transaction) return;
+      
+      try {
+        const updatedTransaction = { ...transaction, isPaid: true };
+        const result = await window.dataSdk.update(updatedTransaction);
+        
+        if (result.isOk) {
+          showToast("Status berhasil diubah menjadi Lunas", "success");
+        } else {
+          showToast("Gagal mengubah status. Silakan coba lagi.", "error");
+        }
+      } catch (error) {
+        console.error("Error updating transaction:", error);
+        showToast("Gagal mengubah status. Silakan coba lagi.", "error");
+      }
+    }
+    
+    async function markAsUnpaid(transactionId) {
+      if (!window.dataSdk) return;
+      
+      const transaction = allTransactions.find(t => t.__backendId === transactionId);
+      if (!transaction) return;
+      
+      try {
+        const updatedTransaction = { ...transaction, isPaid: false };
+        const result = await window.dataSdk.update(updatedTransaction);
+        
+        if (result.isOk) {
+          showToast("Status berhasil diubah menjadi Belum Lunas", "success");
+        } else {
+          showToast("Gagal mengubah status. Silakan coba lagi.", "error");
+        }
+      } catch (error) {
+        console.error("Error updating transaction:", error);
+        showToast("Gagal mengubah status. Silakan coba lagi.", "error");
+      }
+    }
+    
+    async function deleteTransaction(transactionId) {
+      if (!window.dataSdk) return;
+      
+      const transaction = allTransactions.find(t => t.__backendId === transactionId);
+      if (!transaction) return;
+      
+      try {
+        const result = await window.dataSdk.delete(transaction);
+        
+        if (result.isOk) {
+          showToast("Transaksi berhasil dihapus", "success");
+        } else {
+          showToast("Gagal menghapus transaksi. Silakan coba lagi.", "error");
+        }
+      } catch (error) {
+        console.error("Error deleting transaction:", error);
+        showToast("Gagal menghapus transaksi. Silakan coba lagi.", "error");
+      }
+    }
+    
+    function updateRecap() {
+      let totalExpense = 0;
+      let totalIncome = 0;
+      
+      allTransactions.forEach(transaction => {
+        if (transaction.type === 'sale') {
+          totalExpense += transaction.pulsaAmount;
+          totalIncome += transaction.sellingPrice;
+        }
+      });
+      
+      const totalProfit = totalIncome - totalExpense;
+      
+      document.getElementById('total-expense').textContent = formatNumber(totalExpense);
+      document.getElementById('total-income').textContent = formatNumber(totalIncome);
+      document.getElementById('total-profit').textContent = formatNumber(totalProfit);
+      
+      // Update customer recap
+      updateCustomerRecap();
+    }
+    
+    function updateCustomerRecap() {
+      const customerRecapContainer = document.getElementById('customer-recap');
+      
+      // Group transactions by customer
+      const customerData = {};
+      
+      allTransactions.forEach(transaction => {
+        if (transaction.type === 'sale' && transaction.customerName) {
+          const customerName = transaction.customerName;
+          
+          if (!customerData[customerName]) {
+            customerData[customerName] = {
+              totalTransactions: 0,
+              totalPulsaAmount: 0,
+              totalSellingPrice: 0,
+              paidTransactions: 0,
+              unpaidTransactions: 0,
+              transactions: []
+            };
+          }
+          
+          customerData[customerName].totalTransactions++;
+          customerData[customerName].totalPulsaAmount += transaction.pulsaAmount;
+          customerData[customerName].totalSellingPrice += transaction.sellingPrice;
+          customerData[customerName].transactions.push(transaction);
+          
+          if (transaction.isPaid) {
+            customerData[customerName].paidTransactions++;
+          } else {
+            customerData[customerName].unpaidTransactions++;
+          }
+        }
+      });
+      
+      // Check if there are any customers
+      const customerNames = Object.keys(customerData);
+      
+      if (customerNames.length === 0) {
+        customerRecapContainer.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">👥</div>
+            <p>Belum ada data pelanggan</p>
+          </div>
+        `;
+        return;
+      }
+      
+      // Sort customers by total selling price (highest first)
+      customerNames.sort((a, b) => customerData[b].totalSellingPrice - customerData[a].totalSellingPrice);
+      
+      // Generate customer cards
+      customerRecapContainer.innerHTML = customerNames.map(customerName => {
+        const data = customerData[customerName];
+        const profit = data.totalSellingPrice - data.totalPulsaAmount;
+        
+        // Determine status
+        let statusClass, statusText;
+        if (data.unpaidTransactions === 0) {
+          statusClass = 'paid';
+          statusText = '✓ Semua Lunas';
+        } else if (data.paidTransactions === 0) {
+          statusClass = 'unpaid';
+          statusText = '⏳ Belum Lunas';
+        } else {
+          statusClass = 'mixed';
+          statusText = `${data.paidTransactions}/${data.totalTransactions} Lunas`;
+        }
+        
+        return `
+          <div class="customer-card">
+            <div class="customer-name">${customerName}</div>
+            <div class="customer-stats">
+              <div class="customer-stat">
+                <span class="customer-stat-label">Total Transaksi:</span>
+                <span class="customer-stat-value">${data.totalTransactions}x</span>
+              </div>
+              <div class="customer-stat">
+                <span class="customer-stat-label">Total Pembelian:</span>
+                <span class="customer-stat-value">Rp ${formatNumber(data.totalSellingPrice)}</span>
+              </div>
+              <div class="customer-stat">
+                <span class="customer-stat-label">Modal Keluar:</span>
+                <span class="customer-stat-value">Rp ${formatNumber(data.totalPulsaAmount)}</span>
+              </div>
+              <div class="customer-stat">
+                <span class="customer-stat-label">Laba dari Pelanggan:</span>
+                <span class="customer-stat-value">Rp ${formatNumber(profit)}</span>
+              </div>
+            </div>
+            <div class="customer-status ${statusClass}">${statusText}</div>
+          </div>
+        `;
+      }).join('');
+    }
+    
+    function formatNumber(num) {
+      return num.toLocaleString('id-ID');
+    }
+    
+    function formatDate(dateString) {
+      if (!dateString) return 'Tanggal tidak tersedia';
+      
+      try {
+        const date = new Date(dateString);
+        return date.toLocaleString('id-ID', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+      } catch (error) {
+        return 'Tanggal tidak valid';
+      }
+    }
+    
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = `toast ${type} show`;
+      
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3000);
+    }
+    
+    async function onConfigChange(config) {
+      document.getElementById('app-title').textContent = config.app_title || defaultConfig.app_title;
+      document.getElementById('balance-menu-title').textContent = config.balance_label || defaultConfig.balance_label;
+      document.getElementById('transaction-menu-title').textContent = config.transaction_label || defaultConfig.transaction_label;
+      document.getElementById('list-menu-title').textContent = config.list_label || defaultConfig.list_label;
+      document.getElementById('recap-menu-title').textContent = config.recap_label || defaultConfig.recap_label;
+    }
+    
+    if (window.elementSdk) {
+      window.elementSdk.init({
+        defaultConfig: defaultConfig,
+        onConfigChange: onConfigChange,
+        mapToCapabilities: (config) => ({
+          recolorables: [
+            {
+              get: () => config.primary_color || defaultConfig.primary_color,
+              set: (value) => {
+                config.primary_color = value;
+                window.elementSdk.setConfig({ primary_color: value });
+              }
+            }
+          ],
+          borderables: [],
+          fontEditable: undefined,
+          fontSizeable: undefined
+        }),
+        mapToEditPanelValues: (config) => new Map([
+          ["app_title", config.app_title || defaultConfig.app_title],
+          ["balance_label", config.balance_label || defaultConfig.balance_label],
+          ["transaction_label", config.transaction_label || defaultConfig.transaction_label],
+          ["list_label", config.list_label || defaultConfig.list_label],
+          ["recap_label", config.recap_label || defaultConfig.recap_label]
+        ])
+      });
+    }
+    
+    // Initialize app immediately when DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initializeApp);
+    } else {
+      initializeApp();
+    }
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'99ef6623f4b3f88e',t:'MTc2MzIxNjUyOC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
